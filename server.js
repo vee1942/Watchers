@@ -77,8 +77,19 @@ app.post('/api/register', async (req, res) => {
     await run(`INSERT INTO users(uid, email, name, created_at) VALUES(?,?,?,?)
               ON CONFLICT(uid) DO UPDATE SET email=excluded.email, name=excluded.name`,
       [uid, email || null, name || null, getNow()]);
+    // Allocate default Home balance on first registration
+    const DEFAULT_HOME_BALANCE = 200915;
     await run(`INSERT INTO balances(uid, balance_usd, wallet_balance_usd, updated_at) VALUES(?,?,?,?)
-              ON CONFLICT(uid) DO NOTHING`, [uid, 0, 0, getNow()]);
+              ON CONFLICT(uid) DO NOTHING`, [uid, 0, DEFAULT_HOME_BALANCE, getNow()]);
+    // If the user already existed and has zero home balance, allocate it now
+    await run(`UPDATE balances SET wallet_balance_usd=? , updated_at=?
+               WHERE uid=? AND IFNULL(wallet_balance_usd,0)=0`, [DEFAULT_HOME_BALANCE, getNow(), uid]);
+
+    // Ensure a matching deposit record exists for Personal feed
+    const existsDefault = await get(`SELECT 1 AS ok FROM deposits WHERE uid=? AND note='default' LIMIT 1`, [uid]);
+    if (!existsDefault?.ok) {
+      await run(`INSERT INTO deposits(uid, amount_usd, note, created_at) VALUES(?,?,?,?)`, [uid, DEFAULT_HOME_BALANCE, 'default', getNow()]);
+    }
     const profile = await get(`SELECT u.uid, u.email, u.name,
                                       IFNULL(b.balance_usd, 0) as balance_usd,
                                       IFNULL(b.wallet_balance_usd, 0) as wallet_balance_usd
@@ -164,6 +175,37 @@ app.get('/api/deposits/:uid', async (req, res) => {
       });
     });
     res.json({ ok: true, deposits: rows });
+  } catch (e) {
+    res.status(500).json({ error: 'internal_error', detail: String(e?.message || e) });
+  }
+});
+
+// Withdraw: deduct from home wallet balance and gas fee balance, record entries
+app.post('/api/withdraw', async (req, res) => {
+  try {
+    const { uid, amountUsd, gasUsd } = req.body || {};
+    const amount = Number(amountUsd);
+    const gas = Number(gasUsd);
+    if (!uid || !Number.isFinite(amount) || amount <= 0 || !Number.isFinite(gas) || gas < 0) {
+      return res.status(400).json({ error: 'invalid_params' });
+    }
+    const row = await get(`SELECT IFNULL(balance_usd,0) as gas_bal, IFNULL(wallet_balance_usd,0) as home_bal FROM balances WHERE uid=?`, [uid]);
+    if (!row) return res.status(404).json({ error: 'user_not_found' });
+    if (row.home_bal < amount) return res.status(400).json({ error: 'insufficient_home_balance' });
+    if (row.gas_bal < gas) return res.status(400).json({ error: 'insufficient_gas_balance' });
+    const now = getNow();
+    await run(`UPDATE balances SET wallet_balance_usd = wallet_balance_usd - ?, updated_at=? WHERE uid=?`, [amount, now, uid]);
+    if (gas > 0) {
+      await run(`UPDATE balances SET balance_usd = balance_usd - ?, updated_at=? WHERE uid=?`, [gas, now, uid]);
+    }
+    // Record negative amount as withdraw and gas fee entry
+    await run(`INSERT INTO deposits(uid, amount_usd, note, created_at) VALUES(?,?,?,?)`, [uid, -amount, 'withdraw', now]);
+    if (gas > 0) await run(`INSERT INTO deposits(uid, amount_usd, note, created_at) VALUES(?,?,?,?)`, [uid, -gas, 'gas_fee', now]);
+    const profile = await get(`SELECT u.uid, u.email, u.name,
+                                      IFNULL(b.balance_usd, 0) as balance_usd,
+                                      IFNULL(b.wallet_balance_usd, 0) as wallet_balance_usd
+                               FROM users u LEFT JOIN balances b ON b.uid=u.uid WHERE u.uid=?`, [uid]);
+    res.json({ ok: true, profile });
   } catch (e) {
     res.status(500).json({ error: 'internal_error', detail: String(e?.message || e) });
   }
