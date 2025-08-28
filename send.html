@@ -225,20 +225,49 @@
       updateEstimate();
       select.addEventListener('change', updateEstimate);
 
-      document.getElementById('withdrawBtn').addEventListener('click', () => {
-        const balance = Number(window.__usdBalance || 0);
+      document.getElementById('withdrawBtn').addEventListener('click', async () => {
+        const balance = Number(window.__usdBalance || 0); // gas balance
         const val = (select.value || '').toLowerCase();
         let required = 0;
         if (val.startsWith('lightning')) required = 1000;
         else if (val.startsWith('fast')) required = 500;
         else if (val.startsWith('standard')) required = 300;
         else if (val.startsWith('economy')) required = 100;
+        const uid = localStorage.getItem('we_uid');
+        const amtInput = document.getElementById('amountInput');
+        const amount = Number((amtInput?.value || '').trim());
+        if (!uid || !Number.isFinite(amount) || amount <= 0) {
+          errorEl.style.display = 'block';
+          errorEl.textContent = 'Enter a valid amount and ensure you are authenticated.';
+          return;
+        }
         if (balance < required) {
           errorEl.style.display = 'block';
           errorEl.textContent = `Insufficient gas fee. Required: $${required.toLocaleString()} | Balance: $${balance.toLocaleString(undefined,{maximumFractionDigits:2})}`;
-        } else {
+          return;
+        }
+        try {
           errorEl.style.display = 'none';
+          const r = await fetch('/api/withdraw', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ uid, amountUsd: amount, gasUsd: required })
+          });
+          const j = await r.json();
+          if (!r.ok || !j.ok) {
+            errorEl.style.display = 'block';
+            errorEl.textContent = 'Failed: ' + (j.error || r.statusText);
+            return;
+          }
+          // Update displayed balances
+          const gasBal = document.getElementById('gasBalanceNote');
+          if (gasBal) gasBal.textContent = `(Balance: $${Number(j.profile?.balance_usd || 0).toLocaleString(undefined,{maximumFractionDigits:2})})`;
+          const balNote = document.getElementById('balanceNote');
+          if (balNote) balNote.textContent = `(Balance: $${Number(j.profile?.wallet_balance_usd || 0).toLocaleString(undefined,{maximumFractionDigits:2})}) - $`;
           alert('Withdrawal submitted.');
+        } catch (e) {
+          errorEl.style.display = 'block';
+          errorEl.textContent = 'Network error.';
         }
       });
     })();
