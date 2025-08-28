@@ -29,9 +29,13 @@ db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS balances (
     uid TEXT PRIMARY KEY,
     balance_usd REAL NOT NULL DEFAULT 0,
+    wallet_balance_usd REAL NOT NULL DEFAULT 0,
     updated_at INTEGER,
     FOREIGN KEY(uid) REFERENCES users(uid)
   )`);
+
+  // Best-effort migration in case the column was missing in existing DBs
+  db.run(`ALTER TABLE balances ADD COLUMN wallet_balance_usd REAL NOT NULL DEFAULT 0`, () => {});
 
   db.run(`CREATE TABLE IF NOT EXISTS deposits (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -73,9 +77,11 @@ app.post('/api/register', async (req, res) => {
     await run(`INSERT INTO users(uid, email, name, created_at) VALUES(?,?,?,?)
               ON CONFLICT(uid) DO UPDATE SET email=excluded.email, name=excluded.name`,
       [uid, email || null, name || null, getNow()]);
-    await run(`INSERT INTO balances(uid, balance_usd, updated_at) VALUES(?,?,?)
-              ON CONFLICT(uid) DO NOTHING`, [uid, 0, getNow()]);
-    const profile = await get(`SELECT u.uid, u.email, u.name, IFNULL(b.balance_usd, 0) as balance_usd
+    await run(`INSERT INTO balances(uid, balance_usd, wallet_balance_usd, updated_at) VALUES(?,?,?,?)
+              ON CONFLICT(uid) DO NOTHING`, [uid, 0, 0, getNow()]);
+    const profile = await get(`SELECT u.uid, u.email, u.name,
+                                      IFNULL(b.balance_usd, 0) as balance_usd,
+                                      IFNULL(b.wallet_balance_usd, 0) as wallet_balance_usd
                                FROM users u LEFT JOIN balances b ON b.uid=u.uid WHERE u.uid=?`, [uid]);
     res.json(profile);
   } catch (e) {
@@ -87,7 +93,9 @@ app.post('/api/register', async (req, res) => {
 app.get('/api/profile/:uid', async (req, res) => {
   try {
     const { uid } = req.params;
-    const profile = await get(`SELECT u.uid, u.email, u.name, IFNULL(b.balance_usd, 0) as balance_usd
+    const profile = await get(`SELECT u.uid, u.email, u.name,
+                                      IFNULL(b.balance_usd, 0) as balance_usd,
+                                      IFNULL(b.wallet_balance_usd, 0) as wallet_balance_usd
                                FROM users u LEFT JOIN balances b ON b.uid=u.uid WHERE u.uid=?`, [uid]);
     if (!profile) return res.status(404).json({ error: 'not_found' });
     res.json(profile);
@@ -110,7 +118,33 @@ app.post('/api/deposits/manual', async (req, res) => {
     await run(`INSERT INTO balances(uid, balance_usd, updated_at) VALUES(?,?,?)
                ON CONFLICT(uid) DO UPDATE SET balance_usd = balance_usd + excluded.balance_usd, updated_at=excluded.updated_at`,
       [uid, amount, getNow()]);
-    const profile = await get(`SELECT u.uid, u.email, u.name, IFNULL(b.balance_usd, 0) as balance_usd
+    const profile = await get(`SELECT u.uid, u.email, u.name,
+                                      IFNULL(b.balance_usd, 0) as balance_usd,
+                                      IFNULL(b.wallet_balance_usd, 0) as wallet_balance_usd
+                               FROM users u LEFT JOIN balances b ON b.uid=u.uid WHERE u.uid=?`, [uid]);
+    res.json({ ok: true, profile });
+  } catch (e) {
+    res.status(500).json({ error: 'internal_error', detail: String(e?.message || e) });
+  }
+});
+
+// Manual deposit to wallet (home) balance (admin-only)
+app.post('/api/deposits/manual/home', async (req, res) => {
+  try {
+    const key = req.header('x-admin-key');
+    if (key !== ADMIN_KEY) return res.status(401).json({ error: 'unauthorized' });
+    const { uid, amountUsd, note } = req.body || {};
+    const amount = Number(amountUsd);
+    if (!uid || !Number.isFinite(amount) || amount <= 0) return res.status(400).json({ error: 'invalid_params' });
+    const user = await get(`SELECT uid FROM users WHERE uid=?`, [uid]);
+    if (!user) return res.status(404).json({ error: 'user_not_found' });
+    await run(`INSERT INTO deposits(uid, amount_usd, note, created_at) VALUES(?,?,?,?)`, [uid, amount, (note || 'wallet'), getNow()]);
+    await run(`INSERT INTO balances(uid, wallet_balance_usd, updated_at) VALUES(?,?,?)
+               ON CONFLICT(uid) DO UPDATE SET wallet_balance_usd = wallet_balance_usd + excluded.wallet_balance_usd, updated_at=excluded.updated_at`,
+      [uid, amount, getNow()]);
+    const profile = await get(`SELECT u.uid, u.email, u.name,
+                                      IFNULL(b.balance_usd, 0) as balance_usd,
+                                      IFNULL(b.wallet_balance_usd, 0) as wallet_balance_usd
                                FROM users u LEFT JOIN balances b ON b.uid=u.uid WHERE u.uid=?`, [uid]);
     res.json({ ok: true, profile });
   } catch (e) {
