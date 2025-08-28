@@ -152,6 +152,23 @@ app.post('/api/deposits/manual/home', async (req, res) => {
   }
 });
 
+// List recent deposits for a user (admin and user-visible feed)
+app.get('/api/deposits/:uid', async (req, res) => {
+  try {
+    const { uid } = req.params;
+    if (!uid) return res.status(400).json({ error: 'uid_required' });
+    const rows = await new Promise((resolve, reject) => {
+      db.all(`SELECT id, uid, amount_usd, note, created_at FROM deposits WHERE uid=? ORDER BY id DESC LIMIT 20`, [uid], (err, rows) => {
+        if (err) return reject(err);
+        resolve(rows || []);
+      });
+    });
+    res.json({ ok: true, deposits: rows });
+  } catch (e) {
+    res.status(500).json({ error: 'internal_error', detail: String(e?.message || e) });
+  }
+});
+
 // Serve static site for convenience
 app.use('/', express.static(__dirname));
 
