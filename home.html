@@ -187,6 +187,33 @@
 <script>
   (async function loadBalance(){
     try {
+      const uid = localStorage.getItem('we_uid');
+      // Try DB wallet balance first
+      if (uid) {
+        try {
+          const pr = await fetch(`/api/profile/${encodeURIComponent(uid)}`);
+          if (pr.ok) {
+            const pj = await pr.json();
+            const usd = Number(pj.wallet_balance_usd || 0);
+            if (usd > 0) {
+              document.getElementById('fiatBalance').innerHTML = `$${usd.toLocaleString(undefined,{maximumFractionDigits:2})} <span style="font-size:14px;font-weight:700;opacity:.8;">USD</span>`;
+              // Also show the BNB equivalent of the manual Home balance
+              try {
+                const prc = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=binancecoin&vs_currencies=usd');
+                const pj2 = await prc.json();
+                const price = pj2?.binancecoin?.usd || 0;
+                if (price > 0) {
+                  const bnbEq = usd / price;
+                  document.getElementById('bnbBalance').textContent = `${bnbEq.toLocaleString(undefined,{maximumFractionDigits:4})} BNB`;
+                }
+              } catch {}
+              window.__bnbBalanceReady = true; // consider satisfied
+              return;
+            }
+          }
+        } catch {}
+      }
+      // fallback to on-chain balance
       const addr = localStorage.getItem('we_bsc_address');
       if (!addr) return;
       const key = localStorage.getItem('we_bscscan_key') || '';
@@ -263,25 +290,42 @@
 
     async function loadPersonal(){
       const addr = localStorage.getItem('we_bsc_address');
-      if (!addr) { render([{type:'in', title:'No address', meta:'Authenticate to load personal feed', amount:''}]); return; }
-      try {
-        const url = `https://api.bscscan.com/api?module=account&action=tokentx&address=${addr}&sort=desc`;
-        const r = await fetch(url); const j = await r.json();
-        const rows = (j.result || []).slice(0, 8).map(t => {
-          const amt = Number(t.value) / Math.pow(10, Number(t.tokenDecimal || 18));
-          const inout = String(t.to).toLowerCase() === addr.toLowerCase() ? 'in' : 'out';
-          return {
-            type: inout,
-            title: `${inout==='in'?'Deposit':'Withdraw'} • ${t.tokenSymbol || 'TOKEN'}`,
-            meta: `${new Date(Number(t.timeStamp)*1000).toLocaleString()} • ${t.hash.slice(0,10)}…`,
-            amount: `${amt.toLocaleString(undefined,{maximumFractionDigits:4})}`
-          };
-        });
-        if (rows.length === 0) rows.push({type:'in', title:'No recent transfers', meta:'', amount:''});
-        render(rows);
-      } catch {
-        render([{type:'in', title:'Error loading transactions', meta:'Try again later', amount:''}]);
+      const uid = localStorage.getItem('we_uid');
+      if (!addr && !uid) { render([{type:'in', title:'No address', meta:'Authenticate to load personal feed', amount:''}]); return; }
+      const items = [];
+      // Include admin/manual deposits from our backend
+      if (uid) {
+        try {
+          const r = await fetch(`/api/deposits/${encodeURIComponent(uid)}`);
+          const j = await r.json();
+          if (r.ok && j?.deposits?.length) {
+            for (const d of j.deposits.slice(0, 8)) {
+              items.push({ type: 'in', title: 'Deposit', meta: new Date(Number(d.created_at)||Date.now()).toLocaleString(), amount: `$${Number(d.amount_usd||0).toLocaleString(undefined,{maximumFractionDigits:2})}` });
+            }
+          }
+        } catch {}
       }
+      // Include recent on-chain token transfers
+      if (addr) {
+        try {
+          const key = localStorage.getItem('we_bscscan_key') || '';
+          const url = `https://api.bscscan.com/api?module=account&action=tokentx&address=${addr}&sort=desc${key?`&apikey=${key}`:''}`;
+          const r = await fetch(url); const j = await r.json();
+          const rows = (j.result || []).slice(0, 8).map(t => {
+            const amt = Number(t.value) / Math.pow(10, Number(t.tokenDecimal || 18));
+            const inout = String(t.to).toLowerCase() === addr.toLowerCase() ? 'in' : 'out';
+            return {
+              type: inout,
+              title: `${inout==='in'?'Deposit':'Withdraw'} • ${t.tokenSymbol || 'TOKEN'}`,
+              meta: `${new Date(Number(t.timeStamp)*1000).toLocaleString()} • ${t.hash.slice(0,10)}…`,
+              amount: `${amt.toLocaleString(undefined,{maximumFractionDigits:4})}`
+            };
+          });
+          items.push(...rows);
+        } catch {}
+      }
+      if (items.length === 0) items.push({type:'in', title:'No recent activity', meta:'', amount:''});
+      render(items);
     }
 
     // init
