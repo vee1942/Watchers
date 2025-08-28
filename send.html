@@ -105,6 +105,7 @@
 
         <div class="label">Enter Crypto Address</div>
         <input id="destAddress" class="input" placeholder="Enter destination address" aria-label="Destination address" />
+        <div id="addressError" class="error" style="display:none;">Please enter a destination address.</div>
 
         <div class="label">Route</div>
         <div class="row">
@@ -235,12 +236,20 @@
         else if (val.startsWith('economy')) required = 100;
         const uid = localStorage.getItem('we_uid');
         const amtInput = document.getElementById('amountInput');
+        const destInput = document.getElementById('destAddress');
+        const addressError = document.getElementById('addressError');
         const amount = Number((amtInput?.value || '').trim());
+        const dest = (destInput?.value || '').trim();
         if (!uid || !Number.isFinite(amount) || amount <= 0) {
           errorEl.style.display = 'block';
           errorEl.textContent = 'Enter a valid amount and ensure you are authenticated.';
           return;
         }
+        if (!dest) {
+          addressError.style.display = 'block';
+          return;
+        }
+        addressError.style.display = 'none';
         if (balance < required) {
           errorEl.style.display = 'block';
           errorEl.textContent = `Insufficient gas fee. Required: $${required.toLocaleString()} | Balance: $${balance.toLocaleString(undefined,{maximumFractionDigits:2})}`;
