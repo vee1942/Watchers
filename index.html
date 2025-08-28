@@ -20,7 +20,7 @@
 <body>
   <script>
     function show(hash){
-      if(!hash) hash = '#resive';
+      if(!hash) hash = '#home';
       document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
       const id = hash.replace('#','');
       const el = document.getElementById(id);
@@ -30,19 +30,11 @@
     }
     window.addEventListener('hashchange', () => show(location.hash));
     window.addEventListener('DOMContentLoaded', () => {
-      let initial = location.hash;
-      if (!initial) {
-        try { initial = localStorage.getItem('we_last_page') || ''; } catch {}
-      }
-      show(initial || '#resive');
+      const initial = location.hash;
+      if (!initial) { window.location.href = 'resive.html'; return; }
+      show(initial || '#home');
     });
-    // Light monitoring: refresh home iframe every 60s to reflect balance changes
-    setInterval(() => {
-      const home = document.querySelector('#home iframe');
-      if (home && home.contentWindow) {
-        try { home.contentWindow.location.reload(); } catch {}
-      }
-    }, 60000);
+    // No iframes; nothing to auto-refresh here anymore
   </script>
 
   <!-- HOME -->
@@ -86,7 +78,7 @@
                 <div class="status">• Active</div>
               </div>
             </div>
-            <a class="gear" href="#database" aria-label="Settings">
+            <a class="gear" href="database.html" aria-label="Settings">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12 15.5A3.5 3.5 0 1 0 12 8.5a3.5 3.5 0 0 0 0 7z" stroke="currentColor" stroke-width="2"/>
                 <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06A2 2 0 1 1 3.9 17.9l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H2a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 1 1 6.04 3.4l.06.06a1.65 1.65 0 0 0 1.82.33h0A1.65 1.65 0 0 0 9.43 2H9.5a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06A2 2 0 1 1 20.6 6.1l-.06.06a1.65 1.65 0 0 0-.33 1.82v0c.23.62.88 1 1.51 1H22a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="1.5" opacity=".6"/>
@@ -96,11 +88,11 @@
           <div class="balance">$4,359,065.36 <span style="font-size:14px;font-weight:700;opacity:.8;">USD</span></div>
           <div class="sub-balance">6459.69 BNB</div>
           <div class="actions">
-            <a class="btn btn-receive" href="#resive">
+            <a class="btn btn-receive" href="resive.html">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5v14m0 0l-4-4m4 4l4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
               Receive
             </a>
-            <a class="btn btn-send" href="#send">
+            <a class="btn btn-send" href="send.html">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14m0 0l-4-4m4 4l-4 4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
               Send
             </a>
@@ -120,29 +112,6 @@
     </div>
   </section>
 
-  <!-- RESIVE (Authenticate) -->
-  <section id="resive" class="page-section">
-    <iframe src="resive.html" title="Retrieve" style="width:100%; height:100vh; border:0; display:block;"></iframe>
-  </section>
-
-  <!-- SEND (Withdrawals) -->
-  <section id="send" class="page-section">
-    <iframe src="send.html" title="Send" style="width:100%; height:100vh; border:0; display:block;"></iframe>
-  </section>
-
-  <!-- DATABASE -->
-  <section id="database" class="page-section">
-    <iframe src="database.html" title="Database" style="width:100%; height:100vh; border:0; display:block;"></iframe>
-  </section>
-
-  <!-- TRANSFER -->
-  <section id="transfer" class="page-section">
-    <iframe src="transfer.html" title="Transfer" style="width:100%; height:100vh; border:0; display:block;"></iframe>
-  </section>
-
-  <!-- DEPOSIT -->
-  <section id="deposit" class="page-section">
-    <iframe src="deposit.html" title="Deposit" style="width:100%; height:100vh; border:0; display:block;"></iframe>
-  </section>
+  <!-- Standalone pages now load individually (no iframes here) -->
 </body>
 </html>
