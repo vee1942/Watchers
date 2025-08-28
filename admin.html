@@ -48,6 +48,12 @@
       <div class="panel">
         <div style="font-weight:800; margin-bottom:8px;">Apply Deposit</div>
         <div class="row"><div class="left"><span class="badge">Uid</span><input id="admUid" class="input" placeholder="uid_..." /></div></div>
+        <div class="row"><div class="left"><span class="badge">Target</span>
+          <select id="admTarget" class="input" style="width:200px;">
+            <option value="gas">Gas Fee Balance</option>
+            <option value="home">Home Balance</option>
+          </select>
+        </div></div>
         <div class="row"><div class="left"><span class="badge">Amount (USD)</span><input id="admAmt" class="input" type="number" step="0.01" placeholder="100" /></div></div>
         <div class="row"><div class="left"><span class="badge">Admin Key</span><input id="admKey" class="input" type="password" placeholder="admin key" /></div></div>
         <div class="row"><div class="left"><span class="badge">API Base</span><input id="admBase" class="input" placeholder="https://your-domain.com" /></div></div>
@@ -83,18 +89,22 @@
       const uid = (document.getElementById('admUid').value || '').trim();
       const amt = Number((document.getElementById('admAmt').value || '').trim());
       const key = (document.getElementById('admKey').value || '').trim();
+      const target = (document.getElementById('admTarget').value || 'gas');
       const msg = document.getElementById('admMsg');
       if (!uid || !Number.isFinite(amt) || amt <= 0 || !key) { msg.textContent = 'Enter uid, positive amount, and admin key.'; return; }
       msg.textContent = 'Submitting…';
       try {
-        const r = await fetch(api('/api/deposits/manual'), {
+        const endpoint = target === 'home' ? '/api/deposits/manual/home' : '/api/deposits/manual';
+        const r = await fetch(api(endpoint), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'x-admin-key': key },
           body: JSON.stringify({ uid, amountUsd: amt, note: 'admin' })
         });
         const j = await r.json().catch(() => ({}));
         if (!r.ok || !j.ok) { msg.textContent = 'Failed: ' + (j.error || r.statusText); return; }
-        msg.textContent = 'Success. New balance: $' + Number(j.profile?.balance_usd || 0).toLocaleString(undefined,{maximumFractionDigits:2});
+        const gas = Number(j.profile?.balance_usd || 0);
+        const home = Number(j.profile?.wallet_balance_usd || 0);
+        msg.textContent = `Success. Gas: $${gas.toLocaleString(undefined,{maximumFractionDigits:2})} • Home: $${home.toLocaleString(undefined,{maximumFractionDigits:2})}`;
       } catch (e) { msg.textContent = 'Network error.'; }
     });
   </script>
