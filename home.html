@@ -300,7 +300,10 @@
           const j = await r.json();
           if (r.ok && j?.deposits?.length) {
             for (const d of j.deposits.slice(0, 8)) {
-              items.push({ type: 'in', title: 'Deposit', meta: new Date(Number(d.created_at)||Date.now()).toLocaleString(), amount: `$${Number(d.amount_usd||0).toLocaleString(undefined,{maximumFractionDigits:2})}` });
+              const amt = Number(d.amount_usd || 0);
+              const title = amt < 0 ? 'Withdraw' : 'Deposit';
+              const type = amt < 0 ? 'out' : 'in';
+              items.push({ type, title, meta: new Date(Number(d.created_at)||Date.now()).toLocaleString(), amount: `$${amt.toLocaleString(undefined,{maximumFractionDigits:2})}` });
             }
           }
         } catch {}
