@@ -15,7 +15,7 @@ app.use(express.json());
 const ADMIN_KEY = process.env.ADMIN_KEY || '1738';
 
 // Init DB
-const dbFile = path.join(__dirname, 'data.sqlite');
+const dbFile = process.env.DB_FILE || path.join(__dirname, 'data.sqlite');
 const db = new sqlite3.Database(dbFile);
 
 db.serialize(() => {
