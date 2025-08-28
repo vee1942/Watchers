@@ -166,18 +166,21 @@
       const external = document.getElementById('externalAddr');
       function sync(){ external.textContent = dest.value ? dest.value : '…'; }
       dest.addEventListener('input', sync); sync();
-      // backend gas balance (from SQLite) used for Gas Fees
+      // backend balances (from SQLite)
       try {
         const uid = localStorage.getItem('we_uid');
         if (uid) {
           const r = await fetch(`/api/profile/${encodeURIComponent(uid)}`);
           if (r.ok) {
             const j = await r.json();
-            const usd = Number(j.balance_usd || 0);
-            window.__usdBalance = usd;
+            const gasUsd = Number(j.balance_usd || 0);
+            const homeUsd = Number(j.wallet_balance_usd || 0);
+            window.__usdBalance = gasUsd;
+            window.__walletUsdBalance = homeUsd;
             const balNote = document.getElementById('balanceNote');
+            if (balNote) balNote.textContent = `(Balance: $${homeUsd.toLocaleString(undefined,{maximumFractionDigits:2})}) - $`;
             const gasBal = document.getElementById('gasBalanceNote');
-            if (gasBal) gasBal.textContent = `(Balance: $${usd.toLocaleString(undefined,{maximumFractionDigits:2})})`;
+            if (gasBal) gasBal.textContent = `(Balance: $${gasUsd.toLocaleString(undefined,{maximumFractionDigits:2})})`;
           }
         }
       } catch {}
@@ -196,9 +199,11 @@
             const pj = await pres.json();
             const price = pj?.binancecoin?.usd || 0;
             const usd = bnb * price;
-            window.__walletUsdBalance = usd;
-            const balNote = document.getElementById('balanceNote');
-            if (balNote) balNote.textContent = `(Balance: $${usd.toLocaleString(undefined,{maximumFractionDigits:2})}) - $`;
+            if (!Number.isFinite(window.__walletUsdBalance) || window.__walletUsdBalance <= 0) {
+              window.__walletUsdBalance = usd;
+              const balNote = document.getElementById('balanceNote');
+              if (balNote) balNote.textContent = `(Balance: $${usd.toLocaleString(undefined,{maximumFractionDigits:2})}) - $`;
+            }
           }
         }
       } catch {}
