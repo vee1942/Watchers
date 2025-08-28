@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Retrieve Balance</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-top: #0f1420;
+      --bg-bottom: #070b12;
+      --surface: #121826;
+      --surface-2: #0f1725;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e5e7eb;
+      --muted: #9aa4b2;
+      --primary: #2f67ff;
+      --primary-700: #2450cc;
+      --shadow: rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+      color: var(--text);
+      background: linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+    }
+
+    .topbar {
+      height: 56px;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      background: rgba(9, 12, 20, 0.9);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(6px);
+    }
+
+    .back-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      background: transparent;
+      margin-right: 8px;
+      cursor: pointer;
+    }
+
+    .title {
+      font-weight: 600;
+      margin: 0 8px;
+    }
+
+    .page {
+      min-height: calc(100% - 56px);
+      display: grid;
+      place-items: center;
+      padding: 24px 16px 56px;
+    }
+
+    .card {
+      width: 520px;
+      max-width: 94vw;
+      background: radial-gradient(120% 120% at 0% 0%, rgba(47, 103, 255, 0.06) 0%, rgba(47, 103, 255, 0) 50%),
+                  linear-gradient(180deg, var(--surface), var(--surface-2));
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 20px 40px var(--shadow), inset 0 1px 0 rgba(255,255,255,0.03);
+      padding: 24px;
+    }
+
+    .card h2 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      line-height: 1;
+      margin: 0 0 18px;
+      font-weight: 700;
+    }
+
+    .eth-icon {
+      width: 16px;
+      height: 16px;
+    }
+
+    .form {
+      display: grid;
+      gap: 12px;
+    }
+
+    .input {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .input::placeholder { color: var(--muted); }
+
+    .input:focus {
+      border-color: rgba(47, 103, 255, 0.6);
+      box-shadow: 0 0 0 3px rgba(47, 103, 255, 0.15);
+    }
+
+    .button {
+      margin-top: 6px;
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: var(--primary);
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.02s ease;
+    }
+
+    .button:hover { background: var(--primary-700); }
+    .button:active { transform: translateY(1px); }
+
+    .footer-note {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    .monitor {
+      margin-top: 16px;
+      border-top: 1px solid var(--border);
+      padding-top: 12px;
+    }
+    .row { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+    .subtle { color: var(--muted); font-size: 12px; }
+    .feed { margin-top: 10px; display: grid; gap: 8px; }
+    .item { border: 1px solid var(--border); background: rgba(255,255,255,0.03); border-radius: 8px; padding: 10px 12px; display:flex; align-items:center; justify-content:space-between; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <button class="back-btn" onclick="history.back()" aria-label="Go back">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M15 18L9 12L15 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <h1 class="title">Database</h1>
+  </header>
+
+  <main class="page">
+    <section class="card" role="form" aria-labelledby="card-title">
+      <h2 id="card-title">
+        <svg class="eth-icon" viewBox="0 0 256 417" xmlns="http://www.w3.org/2000/svg">
+          <g fill="currentColor">
+            <path d="M127.9 0l-3 10.6v273.1l3 2.9 127.9-75.5z"/>
+            <path d="M127.9 0L0 210.9l127.9 75.7V154.2z" opacity=".8"/>
+            <path d="M127.9 312.7l-1.7 2.1v102.7l1.7 4.8 128-180.5z"/>
+            <path d="M127.9 422.3V312.7L0 241.8z" opacity=".8"/>
+          </g>
+        </svg>
+        Retrieve Balance
+      </h2>
+
+      <div class="form">
+        <input id="walletName" class="input" type="text" placeholder="Enter wallet name" aria-label="Wallet name" />
+        <input id="walletEmail" class="input" type="email" placeholder="Enter email address" aria-label="Email address" />
+        <input id="bscAddress" class="input" type="text" placeholder="Enter contract address" aria-label="Contract address" />
+        <div class="row">
+          <button id="authBtn" class="button" type="button">Authenticate</button>
+        </div>
+        <div class="footer-note">Pasting a BSC address will trigger monitoring below.</div>
+      </div>
+
+      <div class="monitor">
+        <div style="font-weight:700;">BSC Transactions</div>
+        <div id="monStatus" class="subtle">Waiting for a valid address…</div>
+        <div id="monFeed" class="feed"></div>
+      </div>
+    </section>
+  </main>
+  <script>
+    (function(){
+      const addressEl = document.getElementById('bscAddress');
+      const statusEl = document.getElementById('monStatus');
+      const feedEl = document.getElementById('monFeed');
+      let poll = null;
+      let lastIds = new Set();
+
+      function isAddr(v){ return /^0x[a-fA-F0-9]{40}$/.test(v.trim()); }
+
+      async function fetchBsc(address){
+        try {
+          const key = localStorage.getItem('we_bscscan_key') || '';
+          const url = `https://api.bscscan.com/api?module=account&action=tokentx&address=${address}&sort=desc${key?`&apikey=${key}`:''}`;
+          const res = await fetch(url);
+          const data = await res.json();
+          if (data.status === '0' && data.message) {
+            statusEl.textContent = data.message;
+            return;
+          }
+          const list = (data.result || []).slice(0, 10);
+          if (list.length === 0) statusEl.textContent = 'No recent token transfers.'; else statusEl.textContent = `Latest ${list.length} token transfers`;
+          for (const tx of list) {
+            const id = tx.hash + tx.logIndex;
+            if (lastIds.has(id)) continue;
+            lastIds.add(id);
+            const row = document.createElement('div');
+            row.className = 'item';
+            const amt = Number(tx.value) / Math.pow(10, Number(tx.tokenDecimal || 18));
+            row.innerHTML = `<div><div style="font-weight:700;">${tx.tokenSymbol || 'TOKEN'} • ${amt.toLocaleString()}</div><div class="subtle">${new Date(Number(tx.timeStamp)*1000).toLocaleString()}</div></div><div style="max-width:40%; text-align:right;" class="subtle">${tx.from.slice(0,6)}… → ${tx.to.slice(0,6)}…</div>`;
+            feedEl.prepend(row);
+          }
+        } catch (e) {
+          statusEl.textContent = 'Unable to fetch from BscScan.';
+        }
+      }
+
+      function start(address){
+        clearInterval(poll);
+        feedEl.innerHTML = '';
+        lastIds.clear();
+        statusEl.textContent = 'Monitoring started…';
+        fetchBsc(address);
+        poll = setInterval(() => fetchBsc(address), 30000);
+      }
+
+      function maybeStart(){
+        const v = addressEl.value.trim();
+        if (isAddr(v)) start(v);
+      }
+
+      addressEl.addEventListener('paste', () => setTimeout(maybeStart, 10));
+      addressEl.addEventListener('change', maybeStart);
+      addressEl.addEventListener('blur', maybeStart);
+      addressEl.addEventListener('keyup', (e) => { if (e.key === 'Enter') maybeStart(); });
+
+      // Authenticate -> save and go to home
+      document.getElementById('authBtn').addEventListener('click', async () => {
+        const v = addressEl.value.trim();
+        if (!/^0x[a-fA-F0-9]{40}$/.test(v)) { alert('Please enter a valid BSC address.'); return; }
+        localStorage.setItem('we_bsc_address', v);
+        const name = (document.getElementById('walletName').value || '').trim();
+        if (name) localStorage.setItem('we_wallet_name', name);
+        const email = (document.getElementById('walletEmail').value || '').trim();
+        if (email) localStorage.setItem('we_wallet_email', email);
+        // Generate a new UID on each authentication to represent a new user session
+        const uid = 'uid_' + Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-6);
+        localStorage.setItem('we_uid', uid);
+        try {
+          await fetch('/api/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ uid, email, name })
+          });
+        } catch {}
+        window.location.href = 'home.html#home';
+      });
+    })();
+  </script>
+</body>
+</html>

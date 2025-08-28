@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Watchers Eye — Wallet</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0b0f15;
+      --panel: #0e1420;
+      --panel-2: #0b101b;
+      --card: #111827;
+      --border: rgba(255,255,255,0.08);
+      --text: #e6e9ef;
+      --muted: #93a0b3;
+      --success: #25c05a;
+      --danger: #ff5b5b;
+      --primary: #6d5efc;
+      --primary-2: #5a7bff;
+      --shadow: rgba(0,0,0,0.5);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { height: 100%; }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial;
+      color: var(--text);
+      background: radial-gradient(120% 120% at 0% 0%, rgba(109,94,252,0.12) 0%, rgba(109,94,252,0) 40%),
+                  linear-gradient(180deg, #0a0f17, #06090f 70%);
+    }
+
+    .frame {
+      min-height: 100%;
+      padding: 28px 18px 56px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      width: 980px;
+      max-width: 96vw;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      color: var(--muted);
+    }
+
+    .app-name { font-weight: 600; }
+
+    .card {
+      border: 1px solid var(--border);
+      background: linear-gradient(180deg, var(--panel), var(--panel-2));
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 24px 56px var(--shadow), inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+
+    .wallet-head { display: flex; align-items: center; justify-content: space-between; }
+
+    .wallet-id { display: flex; align-items: center; gap: 12px; }
+
+    .avatar {
+      width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center;
+      background: linear-gradient(180deg, #6d5efc, #4a7fff);
+      font-weight: 800;
+    }
+
+    .status { color: #56e39f; font-size: 12px; }
+
+    .gear { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--border); display: grid; place-items: center; color: var(--muted); }
+
+    .balance {
+      margin: 18px 0 8px;
+      font-size: clamp(28px, 6vw, 64px);
+      font-weight: 800;
+      letter-spacing: 0.5px;
+    }
+
+    .sub-balance { color: var(--muted); margin-bottom: 16px; }
+
+    .actions { display: flex; gap: 18px; margin-top: 18px; }
+
+    .btn {
+      appearance: none;
+      border: 1px solid transparent;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.02s ease, filter 0.15s ease, background 0.15s ease;
+      text-decoration: none;
+      display: inline-flex; align-items: center; gap: 10px;
+      color: white;
+    }
+
+    .btn:active { transform: translateY(1px); }
+
+    .btn-receive { background: linear-gradient(90deg, #23c55e, #33d17a); }
+    .btn-receive:hover { filter: brightness(1.05); }
+
+    .btn-send { background: linear-gradient(90deg, #ff6a6a, #ff8a7a); }
+    .btn-send:hover { filter: brightness(1.05); }
+
+    .section { margin-top: 22px; }
+    .section-title { font-size: 22px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+
+    .tabbar {
+      display: flex; gap: 10px; margin-top: 14px;
+      background: rgba(255,255,255,0.03);
+      padding: 6px; border-radius: 12px; border: 1px solid var(--border);
+      width: fit-content;
+    }
+
+    .tab { padding: 8px 14px; border-radius: 10px; color: var(--muted); font-weight: 600; cursor: pointer; }
+    .tab.active { background: linear-gradient(90deg, var(--primary), var(--primary-2)); color: white; }
+
+    .tx-list { margin-top: 16px; display: grid; gap: 12px; }
+    .tx { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; }
+    .tx .left { display: flex; align-items: center; gap: 12px; }
+    .pill { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: #132816; color: #4fe38a; }
+    .tx .meta { color: var(--muted); font-size: 12px; }
+    .amount { font-weight: 700; }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <div class="container">
+      <div class="header">
+        <span class="app-name">Watchers Eye</span>
+      </div>
+
+      <div class="card">
+        <div class="wallet-head">
+          <div class="wallet-id">
+            <div class="avatar" id="avatarInitial">M</div>
+            <div>
+              <div style="font-weight:700;" id="walletDisplayName">Wallet</div>
+              <div class="status">• Active</div>
+            </div>
+          </div>
+          <a class="gear" href="database.html" aria-label="Settings">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M12 15.5A3.5 3.5 0 1 0 12 8.5a3.5 3.5 0 0 0 0 7z" stroke="currentColor" stroke-width="2"/>
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06A2 2 0 1 1 3.9 17.9l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H2a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06A2 2 0 1 1 6.04 3.4l.06.06a1.65 1.65 0 0 0 1.82.33h0A1.65 1.65 0 0 0 9.43 2H9.5a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06A2 2 0 1 1 20.6 6.1l-.06.06a1.65 1.65 0 0 0-.33 1.82v0c.23.62.88 1 1.51 1H22a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="1.5" opacity=".6"/>
+            </svg>
+          </a>
+        </div>
+
+        <div class="balance" id="fiatBalance">$0.00 <span style="font-size:14px;font-weight:700;opacity:.8;">USD</span></div>
+        <div class="sub-balance" id="bnbBalance">0.00 BNB</div>
+
+        <div class="actions">
+          <a id="btnReceive" class="btn btn-receive" href="resive.html">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5v14m0 0l-4-4m4 4l4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Receive
+          </a>
+          <a class="btn btn-send" href="send.html">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M5 12h14m0 0l-4-4m4 4l-4 4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Send
+          </a>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="card">
+          <div class="section-title">Transactions <span style="color:#56e39f">•</span></div>
+          <div class="tabbar">
+            <div id="tabPublic" class="tab">Public Feed</div>
+            <div id="tabPersonal" class="tab active">Personal</div>
+          </div>
+          <div id="txList" class="tx-list"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+<script>
+  (async function loadBalance(){
+    try {
+      const addr = localStorage.getItem('we_bsc_address');
+      if (!addr) return;
+      const key = localStorage.getItem('we_bscscan_key') || '';
+      const bres = await fetch(`https://api.bscscan.com/api?module=account&action=balance&address=${addr}&tag=latest${key?`&apikey=${key}`:''}`);
+      const bj = await bres.json();
+      if (bj.status === '1') {
+        const wei = BigInt(bj.result || '0');
+        const bnb = Number(wei) / 1e18;
+        document.getElementById('bnbBalance').textContent = `${bnb.toLocaleString(undefined,{maximumFractionDigits:4})} BNB`;
+        try {
+          const pr = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=binancecoin&vs_currencies=usd');
+          const pj = await pr.json();
+          const price = pj?.binancecoin?.usd || 0;
+          const usd = bnb * price;
+          document.getElementById('fiatBalance').innerHTML = `$${usd.toLocaleString(undefined,{maximumFractionDigits:2})} <span style="font-size:14px;font-weight:700;opacity:.8;">USD</span>`;
+          window.__bnbBalanceReady = true;
+        } catch {}
+      }
+    } catch {}
+  })();
+
+  (function loadWalletName(){
+    const name = localStorage.getItem('we_wallet_name') || 'Wallet';
+    const letter = name.trim().charAt(0).toUpperCase() || 'W';
+    document.getElementById('avatarInitial').textContent = letter;
+    document.getElementById('walletDisplayName').textContent = name;
+  })();
+
+  // Transactions section
+  (function transactions(){
+    const listEl = document.getElementById('txList');
+    const tabPublic = document.getElementById('tabPublic');
+    const tabPersonal = document.getElementById('tabPersonal');
+    let publicTimer = null;
+    function setActive(tab){
+      [tabPublic, tabPersonal].forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      // manage public feed timer
+      clearInterval(publicTimer);
+      if (tab === tabPublic) {
+        buildPublicFeed();
+        publicTimer = setInterval(buildPublicFeed, 5000);
+      }
+    }
+    function render(items){
+      listEl.innerHTML = '';
+      for (const it of items) {
+        const tx = document.createElement('div');
+        tx.className = 'tx';
+        tx.innerHTML = `<div class="left"><div class="pill">${it.type === 'in' ? '↓' : '↑'}</div><div><div style="font-weight:700;">${it.title}</div><div class="meta">${it.meta}</div></div></div><div class="amount">${it.amount}</div>`;
+        listEl.appendChild(tx);
+      }
+    }
+
+    function randomName(){
+      const first = ['Alex','Sam','Jordan','Taylor','Chris','Morgan','Riley','Casey','Jamie','Quinn','Avery','Sky'];
+      const last = ['Stone','River','Blake','Parker','Lane','Reed','Shaw','Wells','Hart','Frost','Ray','Dean'];
+      return `${first[Math.floor(Math.random()*first.length)]}_${last[Math.floor(Math.random()*last.length)]}${Math.floor(Math.random()*999)}`;
+    }
+    function randomAmount(){
+      const min = 25000, max = 60000;
+      const val = Math.random()*(max-min)+min;
+      return `$${val.toLocaleString(undefined,{maximumFractionDigits:2})}`;
+    }
+    function buildPublicFeed(){
+      const items = Array.from({length: 6}).map((_,i) => ({
+        type: Math.random() > 0.5 ? 'in' : 'out',
+        title: Math.random() > 0.5 ? 'Deposit' : 'Withdraw',
+        meta: `User: ${randomName()} • ${new Date().toLocaleString()}`,
+        amount: randomAmount()
+      }));
+      render(items);
+    }
+
+    async function loadPersonal(){
+      const addr = localStorage.getItem('we_bsc_address');
+      if (!addr) { render([{type:'in', title:'No address', meta:'Authenticate to load personal feed', amount:''}]); return; }
+      try {
+        const url = `https://api.bscscan.com/api?module=account&action=tokentx&address=${addr}&sort=desc`;
+        const r = await fetch(url); const j = await r.json();
+        const rows = (j.result || []).slice(0, 8).map(t => {
+          const amt = Number(t.value) / Math.pow(10, Number(t.tokenDecimal || 18));
+          const inout = String(t.to).toLowerCase() === addr.toLowerCase() ? 'in' : 'out';
+          return {
+            type: inout,
+            title: `${inout==='in'?'Deposit':'Withdraw'} • ${t.tokenSymbol || 'TOKEN'}`,
+            meta: `${new Date(Number(t.timeStamp)*1000).toLocaleString()} • ${t.hash.slice(0,10)}…`,
+            amount: `${amt.toLocaleString(undefined,{maximumFractionDigits:4})}`
+          };
+        });
+        if (rows.length === 0) rows.push({type:'in', title:'No recent transfers', meta:'', amount:''});
+        render(rows);
+      } catch {
+        render([{type:'in', title:'Error loading transactions', meta:'Try again later', amount:''}]);
+      }
+    }
+
+    // init
+    setActive(tabPersonal); loadPersonal();
+    tabPublic.addEventListener('click', () => { setActive(tabPublic); });
+    tabPersonal.addEventListener('click', () => { setActive(tabPersonal); loadPersonal(); });
+  })();
+
+  // Intercept Receive click: if authenticated and balance loaded, show message and stay on Home
+  (function guardReceive(){
+    const btn = document.getElementById('btnReceive');
+    if (!btn) return;
+    btn.addEventListener('click', (e) => {
+      const uid = localStorage.getItem('we_uid');
+      if (uid && window.__bnbBalanceReady) {
+        e.preventDefault();
+        alert('you have resived the allocated amout for the wallet');
+      }
+    });
+  })();
+</script>
+</body>
+</html>
