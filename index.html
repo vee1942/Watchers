@@ -26,9 +26,16 @@
       const el = document.getElementById(id);
       if(el) el.classList.add('active');
       if(location.hash !== hash) history.pushState(null, '', hash);
+      try { localStorage.setItem('we_last_page', hash); } catch {}
     }
     window.addEventListener('hashchange', () => show(location.hash));
-    window.addEventListener('DOMContentLoaded', () => show(location.hash || '#resive'));
+    window.addEventListener('DOMContentLoaded', () => {
+      let initial = location.hash;
+      if (!initial) {
+        try { initial = localStorage.getItem('we_last_page') || ''; } catch {}
+      }
+      show(initial || '#resive');
+    });
     // Light monitoring: refresh home iframe every 60s to reflect balance changes
     setInterval(() => {
       const home = document.querySelector('#home iframe');
